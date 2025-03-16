@@ -1,0 +1,52 @@
+@media print {
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+
+    thead { 
+        display: table-header-group;
+    }
+    
+    tbody {
+        display: table-row-group;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: auto;
+    }
+    
+    tr {
+        page-break-inside: avoid;
+    }
+    
+    th {
+        padding: 5px;
+        text-align: left;
+    }
+    
+}
+.print-format td, .print-format th {
+    padding: 2px !important;
+}
+.letter-head-footer {
+    margin-left: 0mm;
+    margin-right: 0mm;
+    position: inherit;
+    bottom: 19mm;
+}
+
+.left_head{
+    border-left: 1px solid;
+}
+.right_head{
+    border-right: 1px solid;
+}
+.bottom_head{
+    border-bottom: 1px solid;
+}
+.top_head{
+    border-top: 1px solid;
+}

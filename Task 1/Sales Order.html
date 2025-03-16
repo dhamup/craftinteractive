@@ -1,0 +1,187 @@
+{% set sales_order = frappe.get_doc("Sales Order", doc.name) %}
+{% set customer = frappe.get_doc("Customer", sales_order.customer) %}
+{% set company = frappe.get_doc("Company", doc.company) %}
+{% set ship_address = frappe.get_doc("Address", doc.customer_address) %}
+{% set bill_address = frappe.get_doc("Address", doc.shipping_address_name) %}
+<div class="page-break" style="margin-top: 0px;">
+    <h3 style="line-height: 0.1em;"><center>Sales Order<center>
+        <div style="text-align: right;">
+            {%  if frappe.get_list("Access Log", filters={
+                "export_from": "Sales Order",
+                "reference_document": doc.name, 
+                "file_type": "PDF",
+                "method": "Print"
+            })|length > 1 %}
+                <div>(Duplicate)</div>
+            {% else %}
+                <div>(Original)</div>
+            {% endif %}
+        </div>
+    </h3>
+    <table width=100% height=30% border=1>
+        <tr>
+            <td width=50% rowspan=2>
+                <i>To,</i><br>
+                &emsp;<strong>M/S.&nbsp;{%- if sales_order.customer -%}{{sales_order.customer|upper}}{%- endif -%}</strong><br>
+                &emsp;&emsp;{%- if ship_address.address_line1 -%}
+                    {%- if ship_address.address_line1 -%}{{ship_address.address_line1}}{%- endif -%}
+                    {%- if ship_address.address_line2 -%}{{ship_address.address_line2}}{%- endif -%},
+                    <br>
+                    &emsp;&emsp;{%- if ship_address.city -%}{{ship_address.city}}{%- endif -%} - {%- if ship_address.pincode -%}{{ship_address.pincode}}{%- endif -%}, {%- if ship_address.country -%}{{ship_address.country}}{%- endif -%}
+                    <br>
+                    &emsp;{%- if customer.gst_category == "Registered Regular" -%}GSTIN NO.: <b>{{customer.gstin}}{%- endif -%}</b>
+                    <br>
+                    {%- if customer.gst_category == "Registered Regular" -%}State Name: <b>{%- if ship_address.state -%}{{ship_address.state}}{%- endif -%}</b>,&emsp;&emsp;&emsp;{%- endif -%}
+                {%- elif bill_address.address_line1 -%}
+                    &emsp;&emsp;{%- if bill_address.address_line1 -%}{{bill_address.address_line1}}{%- endif -%},
+                    {%- if bill_address.address_line2 -%}{{bill_address.address_line2}}{%- endif -%},
+                    <br>
+                    &emsp;&emsp;{%- if bill_address.city -%}{{bill_address.city}}{%- endif -%} - {%- if bill_address.pincode -%}{{bill_address.pincode}}{%- endif -%}, {%- if bill_address.country -%}{{bill_address.country}}{%- endif -%}
+                    <br>
+                    &emsp;{%- if customer.gst_category == "Registered Regular" -%}GSTIN NO.: <b>{{customer.gstin}}{%- endif -%}</b>
+                    <br>
+                    {%- if customer.gst_category == "Registered Regular" -%}State Name: <b>{%- if bill_address.state -%}{{bill_address.state}}{%- endif -%}</b>,&emsp;&emsp;&emsp;{%- endif -%}
+                {%- endif -%}
+            </td>
+            <td width=25%>
+                <table border=0>
+                    <tr>
+                        <td width="44%">Order No.</td>
+                        <td width="1%">:</td>
+                        <td width="55%"><b>{{doc.name[-5:]}}</b></td>
+                    </tr>
+                </table>
+            </td>
+            <td width=25%>
+                <table border=0>
+                    <tr>
+                        <td width="44%">Dated</td>
+                        <td width="1%">:</td>
+                        <td width="55%"><b>{{ frappe.utils.formatdate(doc.transaction_date) }}</b></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td width=25%>
+                <table>
+                    <tr>
+                        <td width="44%">Cust. Po No.</td>
+                        <td width="1%">:</td>
+                        <td width="55%"><b>{%- if sales_order.po_no -%}{{sales_order.po_no}}{%- endif -%}</b></td>
+                    </tr>
+                </table>
+            </td>
+            <td width=25%>
+                <table>
+                    <tr>
+                        <td width="44%">Dated</td>
+                        <td width="1%">:</td>
+                        <td width="55%"><b>{%- if sales_order.po_date -%}{{sales_order.get_formatted("po_date")}}{%- endif -%}</b></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <table cellpadding=0 cellspacing=0 width=100% border=0>
+        <thead>
+            <tr>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
+                <th style="text-align: center; width: 50in;" class="left_head bottom_head top_head"><b>Description of Goods</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Qty</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Rate</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Taxable Value</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>CGST</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>SGST</b></th>
+                <th style="text-align: center;" class="left_head bottom_head right_head top_head"><b>IGST</b></th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for row in sales_order.items -%}
+            <tr>
+                <td style="text-align: center;" class="left_head bottom_head">{{loop.index}}</td>
+                <td style="text-align: left; width: 50in;" class="left_head bottom_head">{{row.item_code}} - {{row.item_name}}<br>{%- if row.description -%}{{row.description}}{%- endif -%}</td>
+                <td style="text-align: center;" class="left_head bottom_head">{{row.qty|int}}</td>
+                <td style="text-align: center;" class="left_head bottom_head">{{(row.rate|round(2)|string).rstrip('0').rstrip('.')}}</td>
+                <td style="text-align: center;" class="left_head bottom_head">{{(row.amount|round(2)|string).rstrip('0').rstrip('.')}}</td>
+                <td style="text-align: center;" class="left_head bottom_head">{%- if row.cgst_amount -%}{{(row.cgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.cgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
+                <td style="text-align: center;" class="left_head bottom_head">{%- if row.sgst_amount -%}{{(row.sgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.sgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
+                <td style="text-align: center;" class="left_head right_head bottom_head">{%- if row.igst_amount -%}{{(row.igst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.igst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
+            </tr>
+            {%- endfor -%}
+            <tr>
+                <td style="text-align: right;" colspan="4" class="left_head top_head bottom_head"><strong>Total:</strong></td>
+                <td style="text-align: center;" class="left_head top_head bottom_head">{%- if sales_order.total -%}{{(sales_order.total|round(2)|string).rstrip('0').rstrip('.')}}{%- endif -%}</td>
+                <td style="text-align: center;" class="left_head top_head bottom_head">{% set cgst_tax = [0] %}{%- for ctax_tot in sales_order.items -%}{% set _ = cgst_tax.append(cgst_tax.pop() + ctax_tot.cgst_amount|float) %}{%- endfor -%}{{ (cgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
+                <td style="text-align: center;" class="left_head top_head bottom_head">{% set sgst_tax = [0] %}{%- for stax_tot in sales_order.items -%}{% set _ = sgst_tax.append(sgst_tax.pop() + stax_tot.sgst_amount|float) %}{%- endfor -%}{{ (sgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
+                <td style="text-align: center;" class="left_head top_head bottom_head right_head">{%- if sales_order.taxes_and_charges == "Output GST Out-state - JDG" -%}{{sales_order.total_taxes_and_charges}}{%- else -%}0{%- endif -%}</td>
+            </tr>
+            <tr>
+                <td colspan="9" class="left_head right_head"><strong>Amount in words:</strong><b style="font-size: 13px;">{%- if sales_order.in_words -%}{{sales_order.in_words|replace("INR", "RUPEES")|replace(",", "")|upper}}{%- endif -%}</b></td>
+            </tr>
+        </tbody>
+    </table>
+    <table width=100% border=1>
+        <tr>
+            <td width=60%><strong>Terms of Payment:</strong><br>Please Pay on or before<br>{%- if sales_order.due_date -%}<b>{{sales_order.get_formatted("due_date")}}</b>{%- endif -%}</td>
+            <td width=40%>
+                <table style="width:100%;" border=0>
+                    <tr>
+                        <th><b>Net Amount</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.total -%}{{(sales_order.total|round(2)|string).rstrip('0').rstrip('.')}}{%- endif -%}</td>
+                    </tr>
+                    <tr>
+                        <th><b>Tax Amount</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.total_taxes_and_charges -%}{{ ((cgst_tax[0] + sgst_tax[0])|round(2)|string).rstrip('0').rstrip('.') }}{%- else -%}0{%- endif -%}</td>
+                    </tr>
+                    <tr>
+                        <th><b>Gross Amount</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.grand_total -%}{{((sales_order.total + cgst_tax[0] + sgst_tax[0])|round(2)|string).rstrip('0').rstrip('.')}}{%- else -%}0{%- endif -%}</td>
+                    </tr>
+                    <tr>
+                        <th><b>Discount</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.discount_amount -%}{{(sales_order.discount_amount|round(2)|string).rstrip('0').rstrip('.')}}{%- else -%}0{%- endif -%}</td>
+                    </tr>
+                    {%- if sales_order.has_tcs == 1 -%}
+                    <tr>
+                        <th><b>TCS 1%</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- for taxes_row in sales_order.taxes -%}{%- if taxes_row.account_head == "TCS - JDG" -%}{{(taxes_row.tax_amount|round(2)|string).rstrip('0').rstrip('.')}}{%- endif -%}{%- endfor -%}</td>
+                    </tr>
+                    {%- endif -%}
+                    <tr>
+                        <th><b>Rounded Off</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.rounding_adjustment -%}{{(sales_order.rounding_adjustment|round(2)|string).rstrip('0').rstrip('.')}}{%- else -%}0{%- endif -%}</td>
+                    </tr>
+                    <tr>
+                        <th><b>Grand Total</b></th>
+                        <td>:</td>
+                        <td style="text-align: right;">{%- if sales_order.rounded_total -%}{{(sales_order.rounded_total|round(2)|string).rstrip('0').rstrip('.')}}{%- else -%}0{%- endif -%}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <table width=100% border=1>
+        <tr>
+            <td height=50 width=70%>Terms & Conditions :<br>
+                <b>1. Any Discrepancy in this invoice should be brought to our notice within 7 days otherwise the same would be considered correct<br>
+                2. Our responsibility ceases once the goods are delivered to the carrier<br>
+                3. Payment:Interest at 10% will be charged if not paid within due date</b>
+            </td>
+            <td align=right width=30%>
+                <b>For {{ sales_order.company }}</b>
+                <div style="position: relative; height: 60px; border: solid; border-style: none;">
+                   <div style="position: absolute; height: 0px; border: solid; bottom: 0; right: 0;  left: 0; border-style: none;">
+                      Authorized Signatory
+                   </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
