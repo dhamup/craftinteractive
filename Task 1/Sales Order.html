@@ -83,7 +83,11 @@
             </td>
         </tr>
     </table>
-    <table cellpadding=0 cellspacing=0 width=100% border=0>
+    <table cellpadding=0 cellspacing=0 width=100% border=1>
+    {% set ns = namespace(current_limit_index=0, row_count=0) %}
+    {% set page_limits = [18, 25] %}
+    {% set total_rows = sales_order.items | length %}
+    {% set page_number = 1 %}
         <thead>
             <tr>
                 <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
@@ -98,6 +102,31 @@
         </thead>
         <tbody>
             {%- for row in sales_order.items -%}
+            {% if ns.row_count >= page_limits[ns.current_limit_index] %}
+                </tbody>
+                </table>
+                <div style="page-break-before: always;"></div>
+                <table cellpadding=0 cellspacing=0 width=100% border=1>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
+                <th style="text-align: center; width: 50in;" class="left_head bottom_head top_head"><b>Description of Goods</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Qty</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Rate</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Taxable Value</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>CGST</b></th>
+                <th style="text-align: center;" class="left_head bottom_head top_head"><b>SGST</b></th>
+                <th style="text-align: center;" class="left_head bottom_head right_head top_head"><b>IGST</b></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% set ns.row_count = 0 %}
+                {% set page_number = page_number + 1 %}
+
+                {% if ns.current_limit_index + 1 < page_limits | length %}
+                    {% set ns.current_limit_index = ns.current_limit_index + 1 %}
+                {% endif %}
+            {% endif %}
             <tr>
                 <td style="text-align: center;" class="left_head bottom_head">{{loop.index}}</td>
                 <td style="text-align: left; width: 50in;" class="left_head bottom_head">{{row.item_code}} - {{row.item_name}}<br>{%- if row.description -%}{{row.description}}{%- endif -%}</td>
@@ -108,6 +137,7 @@
                 <td style="text-align: center;" class="left_head bottom_head">{%- if row.sgst_amount -%}{{(row.sgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.sgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
                 <td style="text-align: center;" class="left_head right_head bottom_head">{%- if row.igst_amount -%}{{(row.igst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.igst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
             </tr>
+            {% set ns.row_count = ns.row_count + 1 %}
             {%- endfor -%}
             <tr>
                 <td style="text-align: right;" colspan="4" class="left_head top_head bottom_head"><strong>Total:</strong></td>

@@ -26,6 +26,9 @@
         padding: 5px;
         text-align: left;
     }
+    .hg-pdf table tr {
+        page-break-inside: avoid;
+    }
     
 }
 .print-format td, .print-format th {
@@ -37,16 +40,6 @@
     position: inherit;
     bottom: 19mm;
 }
-
-.left_head{
-    border-left: 1px solid;
-}
-.right_head{
-    border-right: 1px solid;
-}
-.bottom_head{
-    border-bottom: 1px solid;
-}
-.top_head{
-    border-top: 1px solid;
+.hg-pdf table tr {
+  page-break-inside: avoid;
 }

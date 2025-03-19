@@ -1,7 +1,6 @@
 frappe.ui.form.on('Sales Order', {
     onload: function(frm) {
         if (!frappe.session.user) return;
-
         frappe.call({
             method: "demo_app.custom_code.set_active_user",
             args: {
@@ -10,7 +9,6 @@ frappe.ui.form.on('Sales Order', {
                 user: frappe.session.user
             }
         });
-
         setInterval(() => {
             frappe.call({
                 method: "demo_app.custom_code.get_active_users",
@@ -21,51 +19,55 @@ frappe.ui.form.on('Sales Order', {
                 callback: function(response) {
                     let users = response.message || [];
                     if (users.length) {
-                        frappe.show_alert({
-                            message: `Currently editing: ${users.join(", ")}`,
-                            indicator: "orange"
-                        });
+                        if (frappe.get_route()[0] === "Form" && frappe.get_route()[1] === frm.doc.doctype) {
+                            frappe.show_alert({
+                                message: `Currently Viewing: ${users.join(", ")}`,
+                                indicator: "orange"
+                            });
+                        }
                     }
                 }
             });
         }, 10000);
     },
+    refresh: function(frm) {
+        frappe.realtime.on(`doc_update_${frm.doc.name}`, function(data) {
+            if (data.user !== frappe.session.user) {
+                frappe.show_alert({
+                    message: `${data.user} is editing ${data.field}: ${data.value}`,
+                    indicator: "orange"
+                });
 
-    onhide: function(frm) {
-        if (!frappe.session.user) return;
-
-        frappe.call({
-            method: "demo_app.custom_code.remove_active_user",
-            args: {
-                doctype: frm.doc.doctype,
-                name: frm.doc.name,
-                user: frappe.session.user
+                frm.set_value(data.field, data.value);
+                frm.refresh_field(data.field);
             }
         });
-    },
-	refresh: function(frm) {
-        frappe.realtime.on(`doc_update_${frm.doc.name}`, function(data) {
-            frappe.show_alert({
-                message: `${data.user} is editing ${data.field}: ${data.value}`,
-                indicator: "orange"
-            });
-
-            frm.set_value(data.field, data.value);
-            frm.refresh_field(data.field);
-        });
-
-        frappe.call({
-            method: "demo_app.custom_code.get_active_users",
-            args: { doctype: frm.doc.doctype, name: frm.doc.name },
-            callback: function(response) {
-                let users = response.message || [];
-                if (users.length) {
-                    frappe.msgprint(`Currently editing: ${users.join(", ")}`);
+        frappe.router.on('change', function() {
+            if (cur_frm && cur_frm.doc) {
+                if (frappe.get_route()[0] === "Form" && frappe.get_route()[1] === cur_frm.doctype) {
+                    frappe.call({
+                        method: "demo_app.custom_code.set_active_user",
+                        args: {
+                            doctype: frm.doc.doctype,
+                            name: frm.doc.name,
+                            user: frappe.session.user
+                        }
+                    });
+                } else {
+                    frappe.call({
+                        method: "demo_app.custom_code.remove_active_user",
+                        args: {
+                            doctype: frm.doc.doctype,
+                            name: frm.doc.name,
+                            user: frappe.session.user
+                        }
+                    });
                 }
             }
         });
     },
-	fieldname_on_focus: function(frm, cdt, cdn) {
+    fieldname_on_focus: function(frm, cdt, cdn) {
+        alert("1");
         let fieldname;
         let docname = frm.doc.name;
         let doctype = frm.doc.doctype;
@@ -96,6 +98,7 @@ frappe.ui.form.on('Sales Order', {
     },
 
     fieldname_on_blur: function(frm, cdt, cdn) {
+        alert("2");
         let fieldname;
         let docname = frm.doc.name;
         let doctype = frm.doc.doctype;
@@ -121,9 +124,10 @@ frappe.ui.form.on('Sales Order', {
         frm.set_df_property(fieldname, "read_only", 0);
     }
 });
+
 frappe.realtime.on("field_lock_update", (data) => {
     if (data.docname === cur_frm.doc.name) {
         cur_frm.set_df_property(data.field_name, "read_only", data.locked ? 1 : 0);
-        frappe.show_alert(`${data.user} is editing "${data.field_name}"`, 3);
+        frappe.show_alert(`${data.user} is editingss "${data.field_name}"`, 3);
     }
 });
