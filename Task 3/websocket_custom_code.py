@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import cint
 import redis
 import json
@@ -17,10 +18,9 @@ def notify_edit(doc, method):
         fieldname = field.fieldname
         old_value = old_doc.get(fieldname)
         new_value = doc.get(fieldname)
-
         if old_value != new_value:
             changed_fields[fieldname] = new_value
-
+    
     if changed_fields:
         first_modified_field = list(changed_fields.keys())[0]
         new_value = changed_fields[first_modified_field]
@@ -34,20 +34,31 @@ def notify_edit(doc, method):
             docname=doc_name
         )
 
-def lock_field(doc, user, field_name):
-    """Lock a field when a user starts editing."""
-    lock_key = f"{doc.doctype}:{doc.name}:{field_name}"
-    
-    if r.exists(lock_key):
-        return False
-    
-    r.set(lock_key, user, ex=30)
-    return True
+@frappe.whitelist()
+def lock_field(doctype, name, field_name):
+    """Notify other users when a field is being edited via WebSocket."""
+    user = frappe.session.user
 
-def unlock_field(doc, field_name):
+    frappe.publish_realtime(f"field_lock_{name}", {
+        "user": user,
+        "field": field_name
+    })
+
+    return {"status": "locked", "field": field_name, "user": user}
+
+@frappe.whitelist()
+def unlock_field(doctype, name):
     """Unlock a field when a user stops editing."""
-    lock_key = f"{doc.doctype}:{doc.name}:{field_name}"
-    r.delete(lock_key)
+    user = frappe.session.user
+    meta = frappe.get_meta(doctype)
+    field_names = [
+        df.fieldname for df in meta.fields
+        if df.fieldtype not in ["Section Break", "Column Break"] and df.fieldname
+    ]
+    for field in field_names:
+        frappe.publish_realtime(f"field_unlock_{name}", {"user": user, "field": field})
+
+    return {"status": "unlocked", "fields": field_names}
 
 def is_field_locked(doc, field_name):
     """Check if a field is locked by another user."""
