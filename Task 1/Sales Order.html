@@ -3,6 +3,10 @@
 {% set company = frappe.get_doc("Company", doc.company) %}
 {% set ship_address = frappe.get_doc("Address", doc.customer_address) %}
 {% set bill_address = frappe.get_doc("Address", doc.shipping_address_name) %}
+{% set ns = namespace(current_lines=0, first_page_lines=60, next_page_lines=60, current_page=1) %}
+{% if letter_head and not no_letterhead -%}
+    <div class="letter-head">{{ letter_head }}</div>
+{%- endif %}
 <div class="page-break" style="margin-top: 0px;">
     <h3 style="line-height: 0.1em;"><center>Sales Order<center>
         <div style="text-align: right;">
@@ -84,10 +88,6 @@
         </tr>
     </table>
     <table cellpadding=0 cellspacing=0 width=100% border=1>
-    {% set ns = namespace(current_limit_index=0, row_count=0) %}
-    {% set page_limits = [18, 25] %}
-    {% set total_rows = sales_order.items | length %}
-    {% set page_number = 1 %}
         <thead>
             <tr>
                 <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
@@ -102,10 +102,17 @@
         </thead>
         <tbody>
             {%- for row in sales_order.items -%}
-            {% if ns.row_count >= page_limits[ns.current_limit_index] %}
+            {% set row_line_count = (row.description | length // 50) + 2 %}
+            {% set max_lines = ns.first_page_lines if ns.current_page == 1 else ns.next_page_lines %}
+            {% if ns.current_lines + row_line_count > max_lines %}
                 </tbody>
                 </table>
                 <div style="page-break-before: always;"></div>
+                {% set ns.current_lines = 0 %}
+                {% set ns.current_page = ns.current_page + 1 %}
+                {% if letter_head and not no_letterhead -%}
+                    <div class="letter-head">{{ letter_head }}</div>
+                {%- endif %}
                 <table cellpadding=0 cellspacing=0 width=100% border=1>
                 <thead>
                     <tr>
@@ -120,12 +127,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% set ns.row_count = 0 %}
-                {% set page_number = page_number + 1 %}
-
-                {% if ns.current_limit_index + 1 < page_limits | length %}
-                    {% set ns.current_limit_index = ns.current_limit_index + 1 %}
-                {% endif %}
             {% endif %}
             <tr>
                 <td style="text-align: center;" class="left_head bottom_head">{{loop.index}}</td>
@@ -137,7 +138,7 @@
                 <td style="text-align: center;" class="left_head bottom_head">{%- if row.sgst_amount -%}{{(row.sgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.sgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
                 <td style="text-align: center;" class="left_head right_head bottom_head">{%- if row.igst_amount -%}{{(row.igst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.igst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
             </tr>
-            {% set ns.row_count = ns.row_count + 1 %}
+            {% set ns.current_lines = ns.current_lines + row_line_count %}
             {%- endfor -%}
             <tr>
                 <td style="text-align: right;" colspan="4" class="left_head top_head bottom_head"><strong>Total:</strong></td>
