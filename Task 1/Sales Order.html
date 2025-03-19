@@ -1,9 +1,15 @@
 {% set sales_order = frappe.get_doc("Sales Order", doc.name) %}
 {% set customer = frappe.get_doc("Customer", sales_order.customer) %}
+{%- if doc.company -%}
 {% set company = frappe.get_doc("Company", doc.company) %}
+{%- endif -%}
+{%- if doc.customer_address -%}
 {% set ship_address = frappe.get_doc("Address", doc.customer_address) %}
+{%- endif -%}
+{%- if doc.shipping_address_name -%}
 {% set bill_address = frappe.get_doc("Address", doc.shipping_address_name) %}
-{% set ns = namespace(current_lines=0, first_page_lines=60, next_page_lines=60, current_page=1) %}
+{%- endif -%}
+{% set ns = namespace(current_lines=0, first_page_lines=35, next_page_lines=40, current_page=1) %}
 {% if letter_head and not no_letterhead -%}
     <div class="letter-head">{{ letter_head }}</div>
 {%- endif %}
@@ -195,23 +201,6 @@
                         <td style="text-align: right;">{%- if sales_order.rounded_total -%}{{(sales_order.rounded_total|round(2)|string).rstrip('0').rstrip('.')}}{%- else -%}0{%- endif -%}</td>
                     </tr>
                 </table>
-            </td>
-        </tr>
-    </table>
-    <table width=100% border=1>
-        <tr>
-            <td height=50 width=70%>Terms & Conditions :<br>
-                <b>1. Any Discrepancy in this invoice should be brought to our notice within 7 days otherwise the same would be considered correct<br>
-                2. Our responsibility ceases once the goods are delivered to the carrier<br>
-                3. Payment:Interest at 10% will be charged if not paid within due date</b>
-            </td>
-            <td align=right width=30%>
-                <b>For {{ sales_order.company }}</b>
-                <div style="position: relative; height: 60px; border: solid; border-style: none;">
-                   <div style="position: absolute; height: 0px; border: solid; bottom: 0; right: 0;  left: 0; border-style: none;">
-                      Authorized Signatory
-                   </div>
-                </div>
             </td>
         </tr>
     </table>
