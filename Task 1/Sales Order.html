@@ -1,100 +1,27 @@
 {% set sales_order = frappe.get_doc("Sales Order", doc.name) %}
 {% set customer = frappe.get_doc("Customer", sales_order.customer) %}
 {%- if doc.company -%}
-{% set company = frappe.get_doc("Company", doc.company) %}
+    {% set company = frappe.get_doc("Company", doc.company) %}
 {%- endif -%}
 {%- if doc.customer_address -%}
-{% set ship_address = frappe.get_doc("Address", doc.customer_address) %}
+    {% set ship_address = frappe.get_doc("Address", doc.customer_address) %}
 {%- endif -%}
 {%- if doc.shipping_address_name -%}
-{% set bill_address = frappe.get_doc("Address", doc.shipping_address_name) %}
+    {% set bill_address = frappe.get_doc("Address", doc.shipping_address_name) %}
 {%- endif -%}
-{% set ns = namespace(current_lines=0, first_page_lines=35, next_page_lines=40, current_page=1) %}
-{% if letter_head and not no_letterhead -%}
-    <div class="letter-head">{{ letter_head }}</div>
-{%- endif %}
+{% set max_chars_per_page = 5000 %}
+{% set max_chars_per_row = 1750 %}
+{% set current_chars = 0 %}
 <div class="page-break" style="margin-top: 0px;">
-    <h3 style="line-height: 0.1em;"><center>Sales Order<center>
-        <div style="text-align: right;">
-            {%  if frappe.get_list("Access Log", filters={
-                "export_from": "Sales Order",
-                "reference_document": doc.name, 
-                "file_type": "PDF",
-                "method": "Print"
-            })|length > 1 %}
-                <div>(Duplicate)</div>
-            {% else %}
-                <div>(Original)</div>
-            {% endif %}
-        </div>
-    </h3>
-    <table width=100% height=30% border=1>
-        <tr>
-            <td width=50% rowspan=2>
-                <i>To,</i><br>
-                &emsp;<strong>M/S.&nbsp;{%- if sales_order.customer -%}{{sales_order.customer|upper}}{%- endif -%}</strong><br>
-                &emsp;&emsp;{%- if ship_address.address_line1 -%}
-                    {%- if ship_address.address_line1 -%}{{ship_address.address_line1}}{%- endif -%}
-                    {%- if ship_address.address_line2 -%}{{ship_address.address_line2}}{%- endif -%},
-                    <br>
-                    &emsp;&emsp;{%- if ship_address.city -%}{{ship_address.city}}{%- endif -%} - {%- if ship_address.pincode -%}{{ship_address.pincode}}{%- endif -%}, {%- if ship_address.country -%}{{ship_address.country}}{%- endif -%}
-                    <br>
-                    &emsp;{%- if customer.gst_category == "Registered Regular" -%}GSTIN NO.: <b>{{customer.gstin}}{%- endif -%}</b>
-                    <br>
-                    {%- if customer.gst_category == "Registered Regular" -%}State Name: <b>{%- if ship_address.state -%}{{ship_address.state}}{%- endif -%}</b>,&emsp;&emsp;&emsp;{%- endif -%}
-                {%- elif bill_address.address_line1 -%}
-                    &emsp;&emsp;{%- if bill_address.address_line1 -%}{{bill_address.address_line1}}{%- endif -%},
-                    {%- if bill_address.address_line2 -%}{{bill_address.address_line2}}{%- endif -%},
-                    <br>
-                    &emsp;&emsp;{%- if bill_address.city -%}{{bill_address.city}}{%- endif -%} - {%- if bill_address.pincode -%}{{bill_address.pincode}}{%- endif -%}, {%- if bill_address.country -%}{{bill_address.country}}{%- endif -%}
-                    <br>
-                    &emsp;{%- if customer.gst_category == "Registered Regular" -%}GSTIN NO.: <b>{{customer.gstin}}{%- endif -%}</b>
-                    <br>
-                    {%- if customer.gst_category == "Registered Regular" -%}State Name: <b>{%- if bill_address.state -%}{{bill_address.state}}{%- endif -%}</b>,&emsp;&emsp;&emsp;{%- endif -%}
-                {%- endif -%}
-            </td>
-            <td width=25%>
-                <table border=0>
-                    <tr>
-                        <td width="44%">Order No.</td>
-                        <td width="1%">:</td>
-                        <td width="55%"><b>{{doc.name[-5:]}}</b></td>
-                    </tr>
-                </table>
-            </td>
-            <td width=25%>
-                <table border=0>
-                    <tr>
-                        <td width="44%">Dated</td>
-                        <td width="1%">:</td>
-                        <td width="55%"><b>{{ frappe.utils.formatdate(doc.transaction_date) }}</b></td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-        <tr>
-            <td width=25%>
-                <table>
-                    <tr>
-                        <td width="44%">Cust. Po No.</td>
-                        <td width="1%">:</td>
-                        <td width="55%"><b>{%- if sales_order.po_no -%}{{sales_order.po_no}}{%- endif -%}</b></td>
-                    </tr>
-                </table>
-            </td>
-            <td width=25%>
-                <table>
-                    <tr>
-                        <td width="44%">Dated</td>
-                        <td width="1%">:</td>
-                        <td width="55%"><b>{%- if sales_order.po_date -%}{{sales_order.get_formatted("po_date")}}{%- endif -%}</b></td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
     <table cellpadding=0 cellspacing=0 width=100% border=1>
         <thead>
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 10px;">
+                    {% if letter_head and not no_letterhead -%}
+                        <div class="letter-head">{{ letter_head }}</div>
+                    {%- endif %}
+                </td>
+            </tr>
             <tr>
                 <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
                 <th style="text-align: center; width: 50in;" class="left_head bottom_head top_head"><b>Description of Goods</b></th>
@@ -107,55 +34,57 @@
             </tr>
         </thead>
         <tbody>
-            {%- for row in sales_order.items -%}
-            {% set row_line_count = (row.description | length // 50) + 2 %}
-            {% set max_lines = ns.first_page_lines if ns.current_page == 1 else ns.next_page_lines %}
-            {% if ns.current_lines + row_line_count > max_lines %}
-                </tbody>
-                </table>
-                <div style="page-break-before: always;"></div>
-                {% set ns.current_lines = 0 %}
-                {% set ns.current_page = ns.current_page + 1 %}
-                {% if letter_head and not no_letterhead -%}
-                    <div class="letter-head">{{ letter_head }}</div>
-                {%- endif %}
-                <table cellpadding=0 cellspacing=0 width=100% border=1>
-                <thead>
-                    <tr>
-                        <th style="text-align: center;" class="left_head bottom_head top_head"><b>S.No</b></th>
-                <th style="text-align: center; width: 50in;" class="left_head bottom_head top_head"><b>Description of Goods</b></th>
-                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Qty</b></th>
-                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Rate</b></th>
-                <th style="text-align: center;" class="left_head bottom_head top_head"><b>Taxable Value</b></th>
-                <th style="text-align: center;" class="left_head bottom_head top_head"><b>CGST</b></th>
-                <th style="text-align: center;" class="left_head bottom_head top_head"><b>SGST</b></th>
-                <th style="text-align: center;" class="left_head bottom_head right_head top_head"><b>IGST</b></th>
-                    </tr>
-                </thead>
-                <tbody>
-            {% endif %}
-            <tr>
-                <td style="text-align: center;" class="left_head bottom_head">{{loop.index}}</td>
-                <td style="text-align: left; width: 50in;" class="left_head bottom_head">{{row.item_code}} - {{row.item_name}}<br>{%- if row.description -%}{{row.description}}{%- endif -%}</td>
-                <td style="text-align: center;" class="left_head bottom_head">{{row.qty|int}}</td>
-                <td style="text-align: center;" class="left_head bottom_head">{{(row.rate|round(2)|string).rstrip('0').rstrip('.')}}</td>
-                <td style="text-align: center;" class="left_head bottom_head">{{(row.amount|round(2)|string).rstrip('0').rstrip('.')}}</td>
-                <td style="text-align: center;" class="left_head bottom_head">{%- if row.cgst_amount -%}{{(row.cgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.cgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
-                <td style="text-align: center;" class="left_head bottom_head">{%- if row.sgst_amount -%}{{(row.sgst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.sgst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
-                <td style="text-align: center;" class="left_head right_head bottom_head">{%- if row.igst_amount -%}{{(row.igst_amount|round(2)|string).rstrip('0').rstrip('.')}}<br>@{{(row.igst_rate|round(2)|string).rstrip('0').rstrip('.')}}%{%- endif -%}</td>
-            </tr>
-            {% set ns.current_lines = ns.current_lines + row_line_count %}
-            {%- endfor -%}
-            <tr>
-                <td style="text-align: right;" colspan="4" class="left_head top_head bottom_head"><strong>Total:</strong></td>
-                <td style="text-align: center;" class="left_head top_head bottom_head">{%- if sales_order.total -%}{{(sales_order.total|round(2)|string).rstrip('0').rstrip('.')}}{%- endif -%}</td>
-                <td style="text-align: center;" class="left_head top_head bottom_head">{% set cgst_tax = [0] %}{%- for ctax_tot in sales_order.items -%}{% set _ = cgst_tax.append(cgst_tax.pop() + ctax_tot.cgst_amount|float) %}{%- endfor -%}{{ (cgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
-                <td style="text-align: center;" class="left_head top_head bottom_head">{% set sgst_tax = [0] %}{%- for stax_tot in sales_order.items -%}{% set _ = sgst_tax.append(sgst_tax.pop() + stax_tot.sgst_amount|float) %}{%- endfor -%}{{ (sgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
-                <td style="text-align: center;" class="left_head top_head bottom_head right_head">{%- if sales_order.taxes_and_charges == "Output GST Out-state - JDG" -%}{{sales_order.total_taxes_and_charges}}{%- else -%}0{%- endif -%}</td>
-            </tr>
-            <tr>
-                <td colspan="9" class="left_head right_head"><strong>Amount in words:</strong><b style="font-size: 13px;">{%- if sales_order.in_words -%}{{sales_order.in_words|replace("INR", "RUPEES")|replace(",", "")|upper}}{%- endif -%}</b></td>
-            </tr>
+        {%- for row in sales_order.items -%}
+            {% set row_description = row.description | default("", true) %}
+            {% set total_length = (row_description | length) | int %}
+            {% set row_index = loop.index %}
+            {% set chunk_starts = range(0, total_length, max_chars_per_row) %}
+            {% for chunk_start in chunk_starts %}
+                {% set chunk_end = chunk_start + max_chars_per_row %}
+                {% set safe_chunk_end = row_description.rfind(" ", chunk_start, chunk_end) %}
+                {% if safe_chunk_end == -1 or safe_chunk_end < chunk_start %}
+                    {% set safe_chunk_end = chunk_end %}
+                {% endif %}
+                {% set desc_chunk = row_description[chunk_start:safe_chunk_end] %}
+                {% set row_chunk_chars = desc_chunk | length + 100 %}
+                <tr>
+                    <td>{{ row_index }}</td>
+                    <td>
+                        {% if chunk_start == 0 %}
+                            <strong>{{ row.item_code }} - {{ row.item_name }}</strong><br>
+                        {% endif %}
+                        {{ desc_chunk }}
+                    </td>
+                    
+                    {% if chunk_start == 0 %}
+                        <td>{{ row.qty|int }}</td>
+                        <td>{{ row.rate|round(2)|string }}</td>
+                        <td>{{ row.amount|round(2)|string }}</td>
+                        <td>{{ row.cgst_amount|round(2)|string }}<br>@{{ row.cgst_rate|round(2)|string }}%</td>
+                        <td>{{ row.sgst_amount|round(2)|string }}<br>@{{ row.sgst_rate|round(2)|string }}%</td>
+                        <td>{{ row.igst_amount|round(2)|string }}<br>@{{ row.igst_rate|round(2)|string }}</td>
+                    {% else %}
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    {% endif %}
+                </tr>
+                {% set current_chars = current_chars + row_chunk_chars %}
+            {% endfor %}
+        {%- endfor -%}
+        <tr>
+            <td style="text-align: right;" colspan="4" class="left_head top_head bottom_head"><strong>Total:</strong></td>
+            <td style="text-align: center;" class="left_head top_head bottom_head">{%- if sales_order.total -%}{{(sales_order.total|round(2)|string).rstrip('0').rstrip('.')}}{%- endif -%}</td>
+            <td style="text-align: center;" class="left_head top_head bottom_head">{% set cgst_tax = [0] %}{%- for ctax_tot in sales_order.items -%}{% set _ = cgst_tax.append(cgst_tax.pop() + ctax_tot.cgst_amount|float) %}{%- endfor -%}{{ (cgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
+            <td style="text-align: center;" class="left_head top_head bottom_head">{% set sgst_tax = [0] %}{%- for stax_tot in sales_order.items -%}{% set _ = sgst_tax.append(sgst_tax.pop() + stax_tot.sgst_amount|float) %}{%- endfor -%}{{ (sgst_tax[0]|round(2)|string).rstrip('0').rstrip('.') }}</td>
+            <td style="text-align: center;" class="left_head top_head bottom_head right_head">{%- if sales_order.taxes_and_charges == "Output GST Out-state - JDG" -%}{{sales_order.total_taxes_and_charges}}{%- else -%}0{%- endif -%}</td>
+        </tr>
+        <tr>
+            <td colspan="9" class="left_head right_head"><strong>Amount in words:</strong><b style="font-size: 13px;">{%- if sales_order.in_words -%}{{sales_order.in_words|replace("INR", "RUPEES")|replace(",", "")|upper}}{%- endif -%}</b></td>
+        </tr>
         </tbody>
     </table>
     <table width=100% border=1>
